@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Secure Notes API</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #1a1a1a;
+        --muted: #666666;
+        --line: #e0e0e0;
+        --code-bg: #f5f5f5;
+        --accent: #0b5fff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #141414;
+          --fg: #e8e8e8;
+          --muted: #9a9a9a;
+          --line: #2e2e2e;
+          --code-bg: #1e1e1e;
+          --accent: #6ea8ff;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 2rem 1rem;
+        background: var(--bg);
+        color: var(--fg);
+        font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main { max-width: 56rem; margin: 0 auto; }
+      h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+      p.sub { color: var(--muted); margin: 0 0 2rem; }
+      h2 {
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 0.4rem;
+        margin: 2rem 0 0.75rem;
+      }
+      table { width: 100%; border-collapse: collapse; }
+      td { padding: 0.45rem 0.5rem 0.45rem 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+      td:first-child { white-space: nowrap; width: 1%; padding-right: 1.25rem; }
+      code {
+        background: var(--code-bg);
+        padding: 0.15em 0.4em;
+        border-radius: 3px;
+        font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+      .note { color: var(--muted); font-size: 0.9em; }
+      a { color: var(--accent); }
+      footer { margin-top: 2.5rem; color: var(--muted); font-size: 0.9em; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Secure Notes API</h1>
+      <p class="sub">
+        REST API for the secure note-taking task. Node 22, Express, Mongoose, MongoDB Atlas.
+        Authentication is JWT in the <code>Authorization: Bearer</code> header.
+      </p>
+
+      <h2>Health</h2>
+      <table>
+        <tr><td><code>GET /api/health</code></td><td><a href="/api/health">try it</a> — no auth required</td></tr>
+      </table>
+
+      <h2>Auth</h2>
+      <table>
+        <tr><td><code>POST /api/auth/register</code></td><td>Create a user account. Always registers with the <code>user</code> role.</td></tr>
+        <tr><td><code>POST /api/auth/login</code></td><td>Returns <code>accessToken</code> and the user object.</td></tr>
+        <tr><td><code>GET /api/auth/me</code></td><td>The signed-in user.</td></tr>
+      </table>
+
+      <h2>Notes</h2>
+      <table>
+        <tr><td><code>GET /api/notes</code></td><td>Paginated. A user sees only their own; an admin sees everyone's.</td></tr>
+        <tr><td><code>POST /api/notes</code></td><td>Create a note.</td></tr>
+        <tr><td><code>GET /api/notes/:id</code></td><td>A note not owned by the caller returns <code>404</code>, not <code>403</code>.</td></tr>
+        <tr><td><code>PATCH /api/notes/:id</code></td><td>Update.</td></tr>
+        <tr><td><code>DELETE /api/notes/:id</code></td><td>Delete.</td></tr>
+      </table>
+
+      <h2>Users <span class="note">(admin only)</span></h2>
+      <table>
+        <tr><td><code>GET /api/users</code></td><td>Paginated list. Optional <code>?interest=</code> filter.</td></tr>
+        <tr><td><code>POST /api/users</code></td><td>Create a user, optionally with the <code>admin</code> role.</td></tr>
+        <tr><td><code>GET /api/users/:id</code></td><td>Admin, or the user themselves.</td></tr>
+        <tr><td><code>PATCH /api/users/:id</code></td><td>Update, including role changes.</td></tr>
+        <tr><td><code>DELETE /api/users/:id</code></td><td>Delete. An admin cannot delete their own account.</td></tr>
+      </table>
+
+      <h2>Aggregations</h2>
+      <table>
+        <tr>
+          <td><code>GET /api/users/grouped-by-interests</code></td>
+          <td>
+            <strong>Scenario 1</strong> — users grouped by interest, in exactly one
+            <code>aggregate()</code> call. Pagination and the group total come from a
+            <code>$facet</code> stage inside the pipeline. Admin only.
+          </td>
+        </tr>
+        <tr>
+          <td><code>GET /api/posts/user/:userId</code></td>
+          <td>
+            <strong>Scenario 2</strong> — one pipeline with a <code>$lookup</code> stage.
+            Public, as the spec requires posts be visible to everyone.
+          </td>
+        </tr>
+        <tr><td><code>POST /api/posts</code></td><td>Create a post. Requires authentication.</td></tr>
+      </table>
+
+      <h2>Pagination</h2>
+      <p class="note">
+        Every list endpoint accepts <code>?page=</code> and <code>?limit=</code> and returns
+        <code>page</code>, <code>limit</code>, <code>total</code> and <code>hasNextPage</code>
+        alongside the data. Oversized limits are rejected rather than silently clamped.
+      </p>
+
+      <h2>Indexes</h2>
+      <p class="note">
+        Four indexes beyond the mandatory <code>_id</code>, all declared with
+        <code>schema.index</code>: <code>users {email}</code> unique,
+        <code>users {interests}</code> multikey, <code>notes {owner, createdAt}</code> and
+        <code>posts {author, createdAt}</code>. Admin lists sort by <code>_id</code>
+        descending, which is already newest-first for monotonic ObjectIds and avoids two
+        further whole-collection sort indexes. The repository README explains each one and
+        lists the indexes deliberately not created.
+      </p>
+
+      <footer>
+        Source:
+        <a href="https://github.com/zakirdaq/secure-notes-api">backend</a> ·
+        <a href="https://github.com/zakirdaq/secure-notes-web">frontend</a>
+      </footer>
+    </main>
+  </body>
+</html>
