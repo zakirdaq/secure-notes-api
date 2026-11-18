@@ -44,6 +44,28 @@ function report(label, explain) {
   console.log('');
 }
 
+/**
+ * Explain an aggregation via an explicit `explain` command rather than
+ * `Aggregate#explain()`.
+ *
+ * An Atlas connection string normally carries `w=majority`, and the server
+ * rejects `explain` on an aggregate that has a write concern attached
+ * ("Option \"explain\" cannot be used on an aggregate call with
+ * writeConcern"). The write concern is inherited from the client, so it
+ * cannot be cleared per-call. Issuing the command directly sidesteps the
+ * inheritance entirely, and behaves identically against a local mongod.
+ */
+async function explainAggregate(model, pipeline) {
+  return model.db.db.command({
+    explain: {
+      aggregate: model.collection.collectionName,
+      pipeline,
+      cursor: {}
+    },
+    verbosity: 'queryPlanner'
+  });
+}
+
 async function run() {
   await connectToDatabase();
 
@@ -95,17 +117,17 @@ async function run() {
 
   report(
     'Scenario 1 — users grouped by interests ($unwind + $group)',
-    await User.aggregate([
+    await explainAggregate(User, [
       { $match: { interests: { $exists: true } } },
       { $unwind: '$interests' },
       { $group: { _id: '$interests', userCount: { $sum: 1 } } },
       { $sort: { userCount: -1, _id: 1 } }
-    ]).explain('queryPlanner')
+    ])
   );
 
   report(
     'Scenario 2 — posts of one user ($lookup)',
-    await User.aggregate([
+    await explainAggregate(User, [
       { $match: { _id: user._id } },
       {
         $lookup: {
@@ -116,7 +138,7 @@ async function run() {
           pipeline: [{ $sort: { createdAt: -1 } }, { $limit: 21 }]
         }
       }
-    ]).explain('queryPlanner')
+    ])
   );
 
   // The $lookup's inner access path is reported separately by the server, so
