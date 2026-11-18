@@ -146,6 +146,9 @@ export const landingPage = `<!doctype html>
       </p>
 
       <footer>
+        Live frontend:
+        <a href="https://secure-notes-web-iota.vercel.app">secure-notes-web-iota.vercel.app</a>
+        <br />
         Source:
         <a href="https://github.com/zakirdaq/secure-notes-api">backend</a> ·
         <a href="https://github.com/zakirdaq/secure-notes-web">frontend</a>

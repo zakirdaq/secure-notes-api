@@ -5,6 +5,18 @@ access control, and a deliberately minimal indexing strategy.
 
 Written from scratch — no starter template or scaffolding tool.
 
+## Live
+
+| | |
+| --- | --- |
+| **API** | <https://secure-notes-api-nine.vercel.app> — the root lists every endpoint |
+| **Frontend** | <https://secure-notes-web-iota.vercel.app> |
+| **Frontend repo** | <https://github.com/zakirdaq/secure-notes-web> |
+
+Hosted on Vercel with MongoDB Atlas. Sign in with `admin@example.com` or
+`user1@example.com`, password `Password123!`, to see the admin and user views
+respectively.
+
 > **This is one of two projects.** The frontend is a separate project in
 > [`secure-notes-web`](https://github.com/zakirdaq/secure-notes-web) with its own `package.json` and dev
 > server. This one serves no HTML — it is a pure JSON API, and the two communicate
