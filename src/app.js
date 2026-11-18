@@ -34,6 +34,28 @@ export function createApp() {
     res.json({ status: 'ok', env: env.nodeEnv, timestamp: new Date().toISOString() });
   });
 
+  // This is an API with no frontend of its own, so the root would otherwise be
+  // a dead end. Anyone opening the bare URL — a reviewer, most likely — gets a
+  // map of what is here instead of a 404 or a platform error page.
+  app.get('/', (_req, res) => {
+    res.json({
+      name: 'Secure Notes API',
+      status: 'ok',
+      frontend: 'https://github.com/zakirdaq/secure-notes-web',
+      endpoints: {
+        health: 'GET /api/health',
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login',
+        me: 'GET /api/auth/me',
+        notes: 'GET|POST /api/notes, GET|PATCH|DELETE /api/notes/:id',
+        users: 'GET|POST /api/users, GET|PATCH|DELETE /api/users/:id  (admin)',
+        aggregation1: 'GET /api/users/grouped-by-interests  (admin)',
+        aggregation2: 'GET /api/posts/user/:userId  (public)',
+        createPost: 'POST /api/posts'
+      }
+    });
+  });
+
   // Note: the database connection is opened per-router (see `withDatabase`),
   // deliberately NOT here. Mounting it on the whole /api prefix would make an
   // unknown path or a missing-token request connect to Mongo before being
@@ -43,7 +65,9 @@ export function createApp() {
   app.use('/api/users', userRoutes);
   app.use('/api/posts', postRoutes);
 
-  app.use('/api', notFoundHandler);
+  // Not scoped to /api, so a stray path returns the same JSON 404 shape as the
+  // rest of the API rather than Express's default HTML page.
+  app.use(notFoundHandler);
   app.use(errorHandler);
 
   return app;
