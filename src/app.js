@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { landingPage } from './landing.js';
 import authRoutes from './routes/authRoutes.js';
 import noteRoutes from './routes/noteRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -36,25 +37,17 @@ export function createApp() {
 
   // This is an API with no frontend of its own, so the root would otherwise be
   // a dead end. Anyone opening the bare URL — a reviewer, most likely — gets a
-  // map of what is here instead of a 404 or a platform error page.
-  app.get('/', (_req, res) => {
-    res.json({
-      name: 'Secure Notes API',
-      status: 'ok',
-      frontend: 'https://github.com/zakirdaq/secure-notes-web',
-      endpoints: {
-        health: 'GET /api/health',
-        register: 'POST /api/auth/register',
-        login: 'POST /api/auth/login',
-        me: 'GET /api/auth/me',
-        notes: 'GET|POST /api/notes, GET|PATCH|DELETE /api/notes/:id',
-        users: 'GET|POST /api/users, GET|PATCH|DELETE /api/users/:id  (admin)',
-        aggregation1: 'GET /api/users/grouped-by-interests  (admin)',
-        aggregation2: 'GET /api/posts/user/:userId  (public)',
-        createPost: 'POST /api/posts'
-      }
-    });
-  });
+  // list of the endpoints instead of a 404 or a platform error page.
+  //
+  // The page lives at /api/docs because on Vercel a request to `/` never
+  // reaches this function; the root redirects here at the edge instead (see
+  // vercel.json). Locally `/` serves it directly.
+  const sendLanding = (_req, res) => {
+    res.type('html').send(landingPage);
+  };
+
+  app.get('/api/docs', sendLanding);
+  app.get('/', sendLanding);
 
   // Note: the database connection is opened per-router (see `withDatabase`),
   // deliberately NOT here. Mounting it on the whole /api prefix would make an

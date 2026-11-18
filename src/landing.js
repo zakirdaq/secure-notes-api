@@ -1,4 +1,16 @@
-<!doctype html>
+/**
+ * The API landing page, embedded as a string rather than read from disk.
+ *
+ * Vercel does not serve this project's public/ directory as static output, and
+ * a bare `/` request never reaches the function at all, so neither a static
+ * file nor an Express route on `/` can answer it. Keeping the page in a module
+ * means no filesystem access and no dependency on root-path routing: it is
+ * served from /api/docs, which the /api rewrite already covers, and the root
+ * redirects there at the edge.
+ *
+ * Generated from the original public/index.html.
+ */
+export const landingPage = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -141,3 +153,4 @@
     </main>
   </body>
 </html>
+`;
